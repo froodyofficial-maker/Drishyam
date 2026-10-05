@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Alibi Engine - Drishyam Mini Game</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #05070a;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      color: #e0e6ed;
+    }
+    #canvas-container {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 1;
+    }
+    #ui-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 10;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 24px;
+    }
+    .hud-card {
+      background: rgba(14, 20, 27, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 8px;
+      padding: 16px 20px;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+      pointer-events: auto;
+    }
+    #top-hud {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 20px;
+    }
+    .meter-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-width: 240px;
+    }
+    .meter-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: #94a3b8;
+      display: flex;
+      justify-content: space-between;
+    }
+    .meter-bar {
+      width: 100%;
+      height: 7px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .meter-fill {
+      height: 100%;
+      width: 0%;
+      transition: width 0.3s ease, background-color 0.3s ease;
+    }
+    #bq-fill { background: #38bdf8; width: 0%; }
+    #is-fill { background: #f43f5e; width: 10%; }
+    #objective-card {
+      max-width: 480px;
+    }
+    #objective-title {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: #38bdf8;
+      margin-bottom: 4px;
+      font-weight: 700;
+    }
+    #objective-desc {
+      font-size: 14px;
+      color: #f1f5f9;
+      line-height: 1.4;
+    }
+    #interaction-prompt {
+      position: absolute;
+      top: 60%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(15, 23, 42, 0.92);
+      border: 1px solid #38bdf8;
+      color: #fff;
+      padding: 12px 28px;
+      border-radius: 30px;
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      box-shadow: 0 0 20px rgba(56, 189, 248, 0.3);
+      display: none;
+      pointer-events: none;
+    }
+    #modal-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(5, 7, 10, 0.85);
+      backdrop-filter: blur(8px);
+      z-index: 50;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+    #modal-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .dialogue-modal {
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 32px;
+      max-width: 600px;
+      width: 90%;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+    }
+    .modal-speaker {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: #38bdf8;
+      margin-bottom: 8px;
+      font-weight: 700;
+    }
+    .modal-text {
+      font-size: 16px;
+      line-height: 1.5;
+      color: #cbd5e1;
+      margin-bottom: 24px;
+    }
+    .modal-options {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .dialogue-btn {
+      background: #1e293b;
+      border: 1px solid #475569;
+      color: #f8fafc;
+      padding: 14px 18px;
+      border-radius: 8px;
+      font-size: 14px;
+      text-align: left;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .dialogue-btn:hover {
+      background: #334155;
+      border-color: #38bdf8;
+      transform: translateY(-2px);
+    }
+    #screen-tint {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 5;
+      transition: background 0.4s ease;
+    }
+    #notification-toast {
+      position: absolute;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(15, 23, 42, 0.95);
+      border-left: 4px solid #38bdf8;
+      padding: 12px 24px;
+      font-size: 13px;
+      color: #f1f5f9;
+      border-radius: 4px;
+      opacity: 0;
+      transition: opacity 0.3s;
+      pointer-events: none;
+    }
+    #controls-hint {
+      position: absolute;
+      bottom: 24px;
+      left: 24px;
+      font-size: 12px;
+      color: #64748b;
+      background: rgba(15, 23, 42, 0.7);
+      padding: 8px 12px;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div id="canvas-container"></div>
+  <div id="screen-tint"></div>
+
+  <div id="ui-layer">
+    <div id="top-hud">
+      <div class="hud-card" id="objective-card">
+        <div id="objective-title">Current Objective</div>
+        <div id="objective-desc">Navigate to the construction zone and dispose of the evidence.</div>
+      </div>
+      <div class="hud-card meter-group">
+        <div>
+          <div class="meter-label">
+            <span>Witness Belief (BQ)</span>
+            <span id="bq-val">0%</span>
+          </div>
+          <div class="meter-bar"><div id="bq-fill" class="meter-fill"></div></div>
+        </div>
+        <div>
+          <div class="meter-label">
+            <span>Police Suspicion (IS)</span>
+            <span id="is-val">10%</span>
+          </div>
+          <div class="meter-bar"><div id="is-fill" class="meter-fill"></div></div>
+        </div>
+      </div>
+    </div>
+    <div id="controls-hint">WASD / Arrow Keys : Move | Mouse Drag : Orbit Camera | E : Interact</div>
+  </div>
+
+  <div id="interaction-prompt">[E] Interact</div>
+  <div id="notification-toast"></div>
+
+  <div id="modal-overlay">
+    <div class="dialogue-modal">
+      <div class="modal-speaker" id="modal-speaker-name">Station Officer</div>
+      <div class="modal-text" id="modal-body-text">...</div>
+      <div class="modal-options" id="modal-choices"></div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>
